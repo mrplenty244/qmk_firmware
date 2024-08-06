@@ -32,3 +32,111 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         QK_BOOT, KC_TRNS, KC_TRNS,                            KC_TRNS,                   KC_TRNS, KC_TRNS, KC_TRNS, RGB_SPI, RGB_VAD, RGB_SPD
     )
 };
+
+enum custom_keycodes 
+{
+    SOCD_ENABLE = SAFE_RANGE,
+    SOCD_DISABLE
+};
+
+bool socd_enabled = true;
+
+bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    static bool wHeld = false;
+    static bool sHeld = false;
+    static bool aHeld = false;
+    static bool dHeld = false;
+    static bool fnHeld = false;
+
+    // Track the state of the WIN_FN key
+    if (keycode == WIN_FN) {
+        fnHeld = record->event.pressed;
+    }
+
+    // Check if WIN_FN is held and 1 is pressed to enable SOCD
+    if (fnHeld && keycode == KC_1 && record->event.pressed) {
+        socd_enabled = true; // Enable SOCD feature
+        return false; // Prevent further processing of this event
+    }
+
+    // Check if WIN_FN is held and 2 is pressed to disable SOCD
+    if (fnHeld && keycode == KC_2 && record->event.pressed) {
+        socd_enabled = false; // Disable SOCD feature
+        return false; // Prevent further processing of this event
+    }
+
+    // Handle custom keycodes for SOCD_ENABLE and SOCD_DISABLE
+    switch (keycode) {
+        case SOCD_ENABLE:
+            if (record->event.pressed) {
+                socd_enabled = true; // Enable SOCD
+            }
+            return false; // Prevent further processing
+
+        case SOCD_DISABLE:
+            if (record->event.pressed) {
+                socd_enabled = false; // Disable SOCD
+            }
+            return false; // Prevent further processing
+    }
+
+    // Handle SOCD key logic
+    switch (keycode) {
+        case KC_W:
+            wHeld = record->event.pressed;
+            if (socd_enabled) {
+                if (sHeld && wHeld) {
+                    unregister_code(KC_S); // Unregister S if both W and S are held
+                } else if (sHeld && !wHeld) {
+                    unregister_code(KC_W);
+                    register_code(KC_S); // Register S if W is released and S is held
+                    return false; // Prevent further processing
+                }
+            }
+            break; // Break to continue processing
+
+        case KC_S:
+            sHeld = record->event.pressed;
+            if (socd_enabled) {
+                if (wHeld && sHeld) {
+                    unregister_code(KC_W); // Unregister W if both W and S are held
+                } else if (wHeld && !sHeld) {
+                    unregister_code(KC_S);
+                    register_code(KC_W); // Register W if S is released and W is held
+                    return false; // Prevent further processing
+                }
+            }
+            break; // Break to continue processing
+
+        case KC_A:
+            aHeld = record->event.pressed;
+            if (socd_enabled) {
+                if (dHeld && aHeld) {
+                    unregister_code(KC_D); // Unregister D if both A and D are held
+                } else if (dHeld && !aHeld) {
+                    unregister_code(KC_A);
+                    register_code(KC_D); // Register D if A is released and D is held
+                    return false; // Prevent further processing
+                }
+            }
+            break; // Break to continue processing
+
+        case KC_D:
+            dHeld = record->event.pressed;
+            if (socd_enabled) {
+                if (aHeld && dHeld) {
+                    unregister_code(KC_A); // Unregister A if both A and D are held
+                } else if (aHeld && !dHeld) {
+                    unregister_code(KC_D);
+                    register_code(KC_A); // Register A if D is released and A is held
+                    return false; // Prevent further processing
+                }
+            }
+            break; // Break 
+
+        default:
+            break; // return keycodes normally
+    }
+
+    return true; 
+}
